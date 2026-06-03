@@ -2,7 +2,7 @@
 # Mihomo NAS Proxy - 常用命令
 # ============================================================
 
-.PHONY: help setup up down restart logs status update clean test
+.PHONY: help setup up down restart logs status update clean test backup restore
 
 # 默认目标
 help: ## 显示帮助信息

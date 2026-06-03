@@ -100,8 +100,7 @@ mihomo-nas-proxy/
 │   └── setup.sh                # 一键部署脚本
 ├── docs/
 │   ├── deploy.md               # 详细部署文档
-│   ├── troubleshoot.md         # 故障排查指南
-│   └── iteration-plan.md       # 迭代计划
+│   └── troubleshoot.md         # 故障排查指南
 ├── .env.example                # 环境变量示例
 ├── .gitignore
 ├── CONTRIBUTING.md             # 贡献指南
@@ -152,13 +151,16 @@ export https_proxy=http://NAS_IP:7890
 | AUTO | 自动选择 | 自动测速，选择延迟最低的节点 |
 | AI 服务 | AI 专用 | ChatGPT / Claude 等，过滤美国/日本/新加坡节点 |
 | 流媒体 | 流媒体专用 | Netflix / YouTube 等，过滤港台日美节点 |
+| 电报 | Telegram 专用 | 过滤新加坡/日本/韩国/德国节点 |
 
 ### 规则说明
 
 - 私有地址（局域网）→ 直连
 - AI 服务域名 → AI 服务分组
 - 流媒体域名 → 流媒体分组
-- Telegram / GitHub → 代理
+- Telegram → 电报分组
+- GitHub / 游戏平台 → 代理
+- 国内常用域名 → 直连
 - 中国 IP → 直连
 - 其他流量 → PROXY 分组
 
