@@ -50,7 +50,7 @@
 
 ```bash
 # 1. 克隆项目
-git clone https://github.com/your-username/mihomo-nas-proxy.git
+git clone https://github.com/Lgugeng/mihomo-nas-proxy.git
 cd mihomo-nas-proxy
 
 # 2. 配置

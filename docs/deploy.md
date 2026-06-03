@@ -11,8 +11,8 @@
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/your-username/clash-proxy.git
-cd clash-proxy
+git clone https://github.com/Lgugeng/mihomo-nas-proxy.git
+cd mihomo-nas-proxy
 ```
 
 ### 2. 配置环境变量
