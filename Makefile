@@ -2,7 +2,7 @@
 # Mihomo NAS Proxy - 常用命令
 # ============================================================
 
-.PHONY: help setup up down restart logs status update clean test backup restore monitor monitor-on monitor-off
+.PHONY: help setup up down restart logs status update clean test backup restore monitor monitor-on monitor-off monitor-up monitor-down monitor-logs auto-update
 
 # 默认目标
 help: ## 显示帮助信息
@@ -88,3 +88,18 @@ monitor-on: ## 启用定时健康监控（每小时检查一次）
 monitor-off: ## 禁用定时健康监控
 	@crontab -l 2>/dev/null | grep -v "health-check.sh" | crontab - 2>/dev/null; \
 	echo "  ✓ 定时监控已禁用"
+
+monitor-up: ## 启动监控面板（Prometheus + Grafana）
+	docker compose --profile monitoring up -d
+	@echo ""
+	@echo "  Grafana:    http://localhost:3000"
+	@echo "  Prometheus: http://localhost:9091"
+
+monitor-down: ## 停止监控面板
+	docker compose --profile monitoring down
+
+monitor-logs: ## 查看监控面板日志
+	docker compose --profile monitoring logs -f
+
+auto-update: ## 检查并自动更新 Mihomo 镜像
+	@bash scripts/auto-update.sh

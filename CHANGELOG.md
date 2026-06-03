@@ -2,6 +2,24 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.2.0] - 2026-06-03
+
+### 新增
+- **监控面板**：Prometheus + Grafana 可视化监控（连接数/流量/节点延迟）
+- **自动更新**：检查新镜像并自动更新，支持 Bark/Telegram 推送通知
+- **GitHub Actions CI**：YAML 语法检查 + ShellCheck + Docker Compose 验证
+- 预置 Grafana 仪表盘 `config/grafana/dashboards/mihomo.json`
+- Prometheus 配置 `config/prometheus.yml`
+- 自动更新脚本 `scripts/auto-update.sh`
+- 监控面板文档 `docs/monitoring.md`
+- Makefile 新增 `monitor-up` / `monitor-down` / `monitor-logs` / `auto-update` 命令
+- README 新增硬件兼容性说明（amd64/arm64/armv7）
+
+### 变更
+- `docker-compose.yml` 新增 Prometheus 和 Grafana 服务（通过 profile 按需启用）
+- `.env.example` 新增 `ENABLE_MONITORING`、`GRAFANA_ADMIN_PASSWORD`
+- `setup.sh` 支持 `ENABLE_MONITORING` 环境变量
+
 ## [1.1.0] - 2026-06-03
 
 ### 新增

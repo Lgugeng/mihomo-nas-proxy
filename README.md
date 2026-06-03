@@ -6,6 +6,7 @@
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](docker-compose.yml)
 [![Mihomo](https://img.shields.io/badge/Mihomo-Alpha-green)](https://github.com/MetaCubeX/mihomo)
 [![MetaCubeXD](https://img.shields.io/badge/UI-MetaCubeXD-purple)](https://github.com/MetaCubeX/metacubexd)
+[![CI](https://github.com/Lgugeng/mihomo-nas-proxy/actions/workflows/ci.yml/badge.svg)](https://github.com/Lgugeng/mihomo-nas-proxy/actions/workflows/ci.yml)
 
 ---
 
@@ -19,26 +20,28 @@
 - 有一个 NAS 或闲置 Linux 机器
 - 想通过 Web UI 统一管理节点和规则
 
+**支持架构：** `amd64` / `arm64` / `armv7`（树莓派、群晖、飞牛、Unraid 等）
+
 ## 架构
 
 ```
-┌─────────────────────────────────────────────┐
-│                    NAS                       │
-│                                              │
-│  ┌──────────────────┐                        │
-│  │   MetaCubeXD     │  Web 管理界面          │
-│  │   :9090/ui       │                        │
-│  └────────┬─────────┘                        │
-│           │                                  │
-│  ┌────────▼─────────┐                        │
-│  │     Mihomo       │  代理核心              │
-│  │   :9090 API      │                        │
-│  └────────┬─────────┘                        │
-│     ┌─────┴──────┐                           │
-│     ▼            ▼                           │
-│  :7890        :7891                          │
-│  HTTP         SOCKS5                         │
-└─────┬────────────┬───────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│                        NAS                           │
+│                                                      │
+│  ┌──────────────────┐   ┌──────────────────┐        │
+│  │   MetaCubeXD     │   │    Grafana       │ 可选   │
+│  │   :9090/ui       │   │    :3000         │        │
+│  └────────┬─────────┘   └────────┬─────────┘        │
+│           │                      │                   │
+│  ┌────────▼─────────┐   ┌────────▼─────────┐        │
+│  │     Mihomo       │   │   Prometheus     │ 可选   │
+│  │   :9090 API      │   │   :9091          │        │
+│  └────────┬─────────┘   └──────────────────┘        │
+│     ┌─────┴──────┐                                   │
+│     ▼            ▼                                   │
+│  :7890        :7891                                  │
+│  HTTP         SOCKS5                                 │
+└─────┬────────────┬───────────────────────────────────┘
       │            │
       ▼            ▼
   ┌────────┐  ┌────────┐  ┌────────┐
@@ -72,19 +75,22 @@ make setup
 ## 常用命令
 
 ```bash
-make help         # 查看所有命令
-make up           # 启动服务
-make down         # 停止服务
-make restart      # 重启服务
-make logs         # 查看日志
-make status       # 查看状态
-make update       # 更新镜像
-make test         # 测试连通性
-make backup       # 备份配置
-make clean        # 清理所有数据
-make monitor      # 执行一次健康检查
-make monitor-on   # 启用定时监控（每小时）
-make monitor-off  # 禁用定时监控
+make help           # 查看所有命令
+make up             # 启动服务
+make down           # 停止服务
+make restart        # 重启服务
+make logs           # 查看日志
+make status         # 查看状态
+make update         # 更新镜像
+make test           # 测试连通性
+make backup         # 备份配置
+make clean          # 清理所有数据
+make monitor        # 执行一次健康检查
+make monitor-on     # 启用定时监控（每小时）
+make monitor-off    # 禁用定时监控
+make auto-update    # 检查并自动更新镜像
+make monitor-up     # 启动监控面板
+make monitor-down   # 停止监控面板
 ```
 
 ## 功能特性
@@ -126,6 +132,33 @@ make monitor-on   # 启用每小时自动检查
 make monitor-off  # 禁用自动检查
 ```
 
+### 监控面板（Prometheus + Grafana）
+
+可视化监控代理流量、连接数、节点延迟：
+
+```env
+# .env
+ENABLE_MONITORING=true
+GRAFANA_ADMIN_PASSWORD=your_password
+```
+
+```bash
+make monitor-up   # 启动监控面板
+# 访问 http://NAS_IP:3000 查看 Grafana
+```
+
+详见 [监控面板指南](docs/monitoring.md)。
+
+### 自动更新
+
+检查新镜像并自动更新，支持推送通知：
+
+```bash
+make auto-update  # 执行一次检查
+```
+
+配合 cron 可实现定时自动更新。
+
 ## 目录结构
 
 ```
@@ -133,20 +166,28 @@ mihomo-nas-proxy/
 ├── docker-compose.yml          # Docker 编排
 ├── Makefile                    # 常用命令封装
 ├── config/
-│   └── config.yaml.template    # 配置模板（安全，无敏感信息）
+│   ├── config.yaml.template    # 配置模板（安全，无敏感信息）
+│   ├── prometheus.yml          # Prometheus 抓取配置
+│   └── grafana/                # Grafana 自动配置
+│       ├── provisioning/       # 数据源和仪表盘自动加载
+│       └── dashboards/         # 预置仪表盘
 ├── mihomo/                     # 运行时数据（gitignored）
 │   ├── config.yaml             # 实际配置（从模板生成）
 │   ├── providers/              # 订阅数据
 │   └── ui/                     # MetaCubeXD 前端
 ├── scripts/
 │   ├── setup.sh                # 一键部署脚本
-│   └── health-check.sh         # 健康监控脚本
+│   ├── health-check.sh         # 健康监控脚本
+│   └── auto-update.sh          # 自动更新脚本
 ├── docs/
 │   ├── deploy.md               # 详细部署文档
 │   ├── troubleshoot.md         # 故障排查指南
-│   └── tun-mode.md             # TUN 模式指南
+│   ├── tun-mode.md             # TUN 模式指南
+│   └── monitoring.md           # 监控面板指南
+├── .github/workflows/ci.yml   # GitHub Actions CI
 ├── .env.example                # 环境变量示例
 ├── .gitignore
+├── .yamllint.yml               # YAML 语法检查配置
 ├── CONTRIBUTING.md             # 贡献指南
 ├── CHANGELOG.md                # 版本记录
 └── SECURITY.md                 # 安全策略
@@ -211,6 +252,15 @@ export https_proxy=http://NAS_IP:7890
 - 国内常用域名 → 直连
 - 中国 IP → 直连
 - 其他流量 → PROXY 分组
+
+## 硬件兼容
+
+| 设备 | 架构 | 支持状态 |
+|------|------|----------|
+| x86 NAS / 服务器 | amd64 | ✅ 完全支持 |
+| ARM NAS（群晖、飞牛） | arm64 | ✅ 完全支持 |
+| 树莓派 4/5 | arm64 | ✅ 完全支持 |
+| 树莓派 3 | armv7 | ✅ 支持 |
 
 ## 安全建议
 

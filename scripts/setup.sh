@@ -199,6 +199,18 @@ fi
 echo -e "${GREEN}  ✓ 服务启动完成${NC}"
 
 echo ""
+# 启动监控面板（可选）
+if [ "$ENABLE_MONITORING" = "true" ]; then
+    echo -e "${YELLOW}  启动监控面板...${NC}"
+    if docker compose version &> /dev/null; then
+        docker compose --profile monitoring up -d
+    else
+        docker-compose --profile monitoring up -d
+    fi
+    echo -e "${GREEN}  ✓ 监控面板已启动${NC}"
+fi
+
+echo ""
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}  部署完成！${NC}"
 echo -e "${GREEN}========================================${NC}"
@@ -207,6 +219,10 @@ echo -e "  Web 管理界面:  http://localhost:9090/ui/"
 echo -e "  HTTP 代理:     http://localhost:7890"
 echo -e "  SOCKS5 代理:   socks5://localhost:7891"
 echo -e "  API 地址:      http://localhost:9090"
+if [ "$ENABLE_MONITORING" = "true" ]; then
+    echo -e "  Grafana:       http://localhost:3000"
+    echo -e "  Prometheus:    http://localhost:9091"
+fi
 echo ""
 echo -e "  查看日志:      make logs"
 echo -e "  停止服务:      make down"
@@ -218,4 +234,7 @@ echo -e "  1. 访问 Web UI 修改默认密码"
 echo -e "  2. 如需局域网访问，编辑 mihomo/config.yaml 中的 external-controller"
 if [ "$ENABLE_TUN" = "true" ]; then
     echo -e "  3. TUN 模式已启用，所有设备将自动走代理"
+fi
+if [ "$ENABLE_MONITORING" = "true" ]; then
+    echo -e "  4. Grafana 默认密码：${GRAFANA_ADMIN_PASSWORD:-mihomo123}"
 fi
