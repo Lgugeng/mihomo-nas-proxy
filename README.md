@@ -72,16 +72,58 @@ make setup
 ## 常用命令
 
 ```bash
-make help       # 查看所有命令
-make up         # 启动服务
-make down       # 停止服务
-make restart    # 重启服务
-make logs       # 查看日志
-make status     # 查看状态
-make update     # 更新镜像
-make test       # 测试连通性
-make backup     # 备份配置
-make clean      # 清理所有数据
+make help         # 查看所有命令
+make up           # 启动服务
+make down         # 停止服务
+make restart      # 重启服务
+make logs         # 查看日志
+make status       # 查看状态
+make update       # 更新镜像
+make test         # 测试连通性
+make backup       # 备份配置
+make clean        # 清理所有数据
+make monitor      # 执行一次健康检查
+make monitor-on   # 启用定时监控（每小时）
+make monitor-off  # 禁用定时监控
+```
+
+## 功能特性
+
+### 多订阅源支持
+
+支持同时使用两个订阅源，节点自动合并：
+
+```env
+# .env
+CLASH_SUBSCRIPTION_URL=https://机场1的订阅链接
+CLASH_SUBSCRIPTION_URL_2=https://机场2的订阅链接
+```
+
+### TUN 模式（全局透明代理）
+
+启用后所有设备自动走代理，无需单独配置：
+
+```env
+# .env
+ENABLE_TUN=true
+```
+
+适用场景：智能电视、游戏主机、IoT 设备。详见 [TUN 模式指南](docs/tun-mode.md)。
+
+### 健康监控
+
+定时检查订阅有效性和节点状态，支持告警推送：
+
+```env
+# .env（二选一）
+BARK_URL=https://api.day.app/YOUR_KEY          # iOS Bark 推送
+TELEGRAM_URL=https://api.telegram.org/bot...   # Telegram 推送
+```
+
+```bash
+make monitor      # 手动执行一次检查
+make monitor-on   # 启用每小时自动检查
+make monitor-off  # 禁用自动检查
 ```
 
 ## 目录结构
@@ -97,10 +139,12 @@ mihomo-nas-proxy/
 │   ├── providers/              # 订阅数据
 │   └── ui/                     # MetaCubeXD 前端
 ├── scripts/
-│   └── setup.sh                # 一键部署脚本
+│   ├── setup.sh                # 一键部署脚本
+│   └── health-check.sh         # 健康监控脚本
 ├── docs/
 │   ├── deploy.md               # 详细部署文档
-│   └── troubleshoot.md         # 故障排查指南
+│   ├── troubleshoot.md         # 故障排查指南
+│   └── tun-mode.md             # TUN 模式指南
 ├── .env.example                # 环境变量示例
 ├── .gitignore
 ├── CONTRIBUTING.md             # 贡献指南
@@ -140,6 +184,10 @@ docker run -e HTTP_PROXY=http://NAS_IP:7890 -e HTTPS_PROXY=http://NAS_IP:7890 ..
 export http_proxy=http://NAS_IP:7890
 export https_proxy=http://NAS_IP:7890
 ```
+
+### 智能电视 / 游戏主机
+
+启用 TUN 模式即可，无需在设备上配置。详见 [TUN 模式指南](docs/tun-mode.md)。
 
 ## 配置说明
 

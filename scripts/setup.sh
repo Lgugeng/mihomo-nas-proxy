@@ -28,15 +28,11 @@ echo ""
 # 0. 加载 .env 文件
 # ------------------------------------------------------------
 if [ -f "$ENV_FILE" ]; then
-    echo -e "${YELLOW}[0/5] 加载 .env 配置...${NC}"
-    # 安全加载：只读取 KEY=VALUE 格式，忽略注释和空行
+    echo -e "${YELLOW}[0/6] 加载 .env 配置...${NC}"
     while IFS='=' read -r key value; do
-        # 跳过注释和空行
         [[ "$key" =~ ^#.*$ || -z "$key" ]] && continue
-        # 去除首尾空格和引号
         key=$(echo "$key" | xargs)
         value=$(echo "$value" | xargs | sed 's/^["'\'']\(.*\)["'\'']$/\1/')
-        # 导出环境变量（仅当未手动设置时）
         if [ -z "${!key}" ]; then
             export "$key=$value"
         fi
@@ -47,7 +43,7 @@ fi
 # ------------------------------------------------------------
 # 1. 检查 Docker
 # ------------------------------------------------------------
-echo -e "${YELLOW}[1/5] 检查 Docker...${NC}"
+echo -e "${YELLOW}[1/6] 检查 Docker...${NC}"
 if ! command -v docker &> /dev/null; then
     echo -e "${RED}错误：未安装 Docker，请先安装 Docker${NC}"
     echo -e "${YELLOW}  安装指南：https://docs.docker.com/get-docker/${NC}"
@@ -62,7 +58,7 @@ echo -e "${GREEN}  ✓ Docker 已安装${NC}"
 # ------------------------------------------------------------
 # 2. 创建目录结构
 # ------------------------------------------------------------
-echo -e "${YELLOW}[2/5] 创建目录结构...${NC}"
+echo -e "${YELLOW}[2/6] 创建目录结构...${NC}"
 mkdir -p "$MIHOMO_DIR/providers"
 mkdir -p "$UI_DIR"
 echo -e "${GREEN}  ✓ 目录创建完成${NC}"
@@ -70,7 +66,7 @@ echo -e "${GREEN}  ✓ 目录创建完成${NC}"
 # ------------------------------------------------------------
 # 3. 下载 MetaCubeXD UI
 # ------------------------------------------------------------
-echo -e "${YELLOW}[3/5] 下载 MetaCubeXD UI...${NC}"
+echo -e "${YELLOW}[3/6] 下载 MetaCubeXD UI...${NC}"
 UI_URL="https://github.com/MetaCubeX/metacubexd/releases/latest/download/compressed-dist.tgz"
 
 if [ -f "$UI_DIR/index.html" ]; then
@@ -94,7 +90,7 @@ fi
 # ------------------------------------------------------------
 # 4. 生成配置文件
 # ------------------------------------------------------------
-echo -e "${YELLOW}[4/5] 生成配置文件...${NC}"
+echo -e "${YELLOW}[4/6] 生成配置文件...${NC}"
 if [ -f "$CONFIG_FILE" ]; then
     echo -e "${GREEN}  ✓ 配置文件已存在，跳过生成${NC}"
 else
@@ -116,17 +112,84 @@ else
         echo -e "${YELLOW}  未设置密钥，自动生成${NC}"
     fi
 
-    # 使用 awk 替换模板（兼容 macOS 和 Linux）
-    awk -v url="$CLASH_SUBSCRIPTION_URL" -v secret="$MIHOMO_SECRET" \
-        '{gsub(/CLASH_SUBSCRIPTION_URL/, url); gsub(/CHANGE_ME_TO_STRONG_SECRET/, secret); print}' \
-        "$PROJECT_DIR/config/config.yaml.template" > "$CONFIG_FILE"
+    # 从模板生成配置
+    TEMPLATE="$PROJECT_DIR/config/config.yaml.template"
+    cp "$TEMPLATE" "$CONFIG_FILE"
+
+    # 替换订阅链接
+    awk -v url="$CLASH_SUBSCRIPTION_URL" \
+        '{gsub(/CLASH_SUBSCRIPTION_URL/, url); print}' \
+        "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+
+    # 替换密钥
+    awk -v secret="$MIHOMO_SECRET" \
+        '{gsub(/CHANGE_ME_TO_STRONG_SECRET/, secret); print}' \
+        "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+
+    # 处理第二订阅源
+    if [ -n "$CLASH_SUBSCRIPTION_URL_2" ]; then
+        echo -e "${GREEN}  ✓ 检测到第二订阅源${NC}"
+        # 取消 airport2 provider 注释
+        sed -i '/##PROVIDER2_BEGIN##/,/##PROVIDER2_END##/{
+            s/^##PROVIDER2_BEGIN##$//
+            s/^##PROVIDER2_END##$//
+            s/^# /  /
+            s/^#//
+        }' "$CONFIG_FILE"
+        # 替换第二订阅链接
+        awk -v url="$CLASH_SUBSCRIPTION_URL_2" \
+            '{gsub(/CLASH_SUBSCRIPTION_URL_2/, url); print}' \
+            "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
+        # 取消 use 行注释
+        sed -i 's/^##USE2##      /      /' "$CONFIG_FILE"
+    else
+        # 删除第二订阅源相关行
+        sed -i '/##PROVIDER2_BEGIN##/,/##PROVIDER2_END##/d' "$CONFIG_FILE"
+        # 删除 use2 行
+        sed -i '/^##USE2##/d' "$CONFIG_FILE"
+    fi
+
+    # 处理 TUN 模式
+    if [ "$ENABLE_TUN" = "true" ]; then
+        echo -e "${GREEN}  ✓ TUN 模式已启用${NC}"
+        # 取消 TUN 配置注释
+        sed -i '/##TUN_BEGIN##/,/##TUN_END##/{
+            s/^##TUN_BEGIN##$//
+            s/^##TUN_END##$//
+            s/^# tun:/tun:/
+            s/^#   /  /
+            s/^#     /    /
+        }' "$CONFIG_FILE"
+    else
+        # 删除 TUN 相关行
+        sed -i '/##TUN_BEGIN##/,/##TUN_END##/d' "$CONFIG_FILE"
+    fi
+
+    # 清理标记行
+    sed -i '/^##TUN_BEGIN##$/d; /^##TUN_END##$/d' "$CONFIG_FILE"
+    sed -i '/^##PROVIDER2_BEGIN##$/d; /^##PROVIDER2_END##$/d' "$CONFIG_FILE"
+    sed -i '/^##USE2##$/d' "$CONFIG_FILE"
+
     echo -e "${GREEN}  ✓ 配置文件生成完成${NC}"
 fi
 
 # ------------------------------------------------------------
-# 5. 启动服务
+# 5. 安装健康监控（可选）
 # ------------------------------------------------------------
-echo -e "${YELLOW}[5/5] 启动服务...${NC}"
+echo -e "${YELLOW}[5/6] 配置健康监控...${NC}"
+MONITOR_SCRIPT="$PROJECT_DIR/scripts/health-check.sh"
+if [ -f "$MONITOR_SCRIPT" ] && { [ -n "$BARK_URL" ] || [ -n "$TELEGRAM_URL" ]; }; then
+    chmod +x "$MONITOR_SCRIPT"
+    echo -e "${GREEN}  ✓ 健康监控脚本就绪${NC}"
+    echo -e "${YELLOW}  运行 'make monitor-on' 启用定时监控${NC}"
+else
+    echo -e "${GREEN}  ⏭ 未配置告警推送，跳过监控设置${NC}"
+fi
+
+# ------------------------------------------------------------
+# 6. 启动服务
+# ------------------------------------------------------------
+echo -e "${YELLOW}[6/6] 启动服务...${NC}"
 cd "$PROJECT_DIR"
 if docker compose version &> /dev/null; then
     docker compose up -d
@@ -148,7 +211,11 @@ echo ""
 echo -e "  查看日志:      make logs"
 echo -e "  停止服务:      make down"
 echo -e "  更新服务:      make update"
+echo -e "  健康检查:      make monitor"
 echo ""
 echo -e "${YELLOW}⚠️  首次部署请务必：${NC}"
 echo -e "  1. 访问 Web UI 修改默认密码"
 echo -e "  2. 如需局域网访问，编辑 mihomo/config.yaml 中的 external-controller"
+if [ "$ENABLE_TUN" = "true" ]; then
+    echo -e "  3. TUN 模式已启用，所有设备将自动走代理"
+fi

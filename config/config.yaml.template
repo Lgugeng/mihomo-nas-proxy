@@ -1,6 +1,6 @@
 # ============================================================
 # Mihomo 配置模板
-# 使用方法：复制此文件为 config.yaml 并填入你的订阅链接
+# 使用方法：由 setup.sh 自动生成 mihomo/config.yaml
 # ============================================================
 
 mixed-port: 7890
@@ -63,7 +63,23 @@ dns:
       - '+.github.com'
 
 # ------------------------------------------------------------
-# 订阅源（把 CLASH_SUBSCRIPTION_URL 替换为你的订阅链接）
+# TUN 模式（全局透明代理，默认关闭）
+# 启用后所有设备自动走代理，无需单独配置代理
+# 启用方式：在 .env 中设置 ENABLE_TUN=true
+# ------------------------------------------------------------
+##TUN_BEGIN##
+# tun:
+#   enable: true
+#   stack: system
+#   dns-hijack:
+#     - any:53
+#   auto-route: true
+#   auto-detect-interface: true
+##TUN_END##
+
+# ------------------------------------------------------------
+# 订阅源
+# 主订阅（必填）+ 第二订阅（可选）
 # ------------------------------------------------------------
 proxy-providers:
   airport:
@@ -76,6 +92,18 @@ proxy-providers:
       url: http://www.gstatic.com/generate_204
       interval: 300
 
+##PROVIDER2_BEGIN##
+  airport2:
+    type: http
+    url: "CLASH_SUBSCRIPTION_URL_2"
+    interval: 3600
+    path: ./providers/airport2.yaml
+    health-check:
+      enable: true
+      url: http://www.gstatic.com/generate_204
+      interval: 300
+##PROVIDER2_END##
+
 # ------------------------------------------------------------
 # 代理分组
 # ------------------------------------------------------------
@@ -85,6 +113,7 @@ proxy-groups:
     type: select
     use:
       - airport
+##USE2##      - airport2
     proxies:
       - AUTO
       - AI服务
@@ -97,6 +126,7 @@ proxy-groups:
     type: url-test
     use:
       - airport
+##USE2##      - airport2
     url: http://www.gstatic.com/generate_204
     interval: 300
     tolerance: 50
@@ -106,6 +136,7 @@ proxy-groups:
     type: select
     use:
       - airport
+##USE2##      - airport2
     filter: "美国|日本|新加坡|韩国"
 
   # 流媒体组（Netflix/YouTube 等）
@@ -113,6 +144,7 @@ proxy-groups:
     type: select
     use:
       - airport
+##USE2##      - airport2
     filter: "香港|台湾|日本|新加坡|美国|韩国"
 
   # 电报组
@@ -120,6 +152,7 @@ proxy-groups:
     type: select
     use:
       - airport
+##USE2##      - airport2
     filter: "新加坡|日本|韩国|美国|德国|荷兰"
 
 # ------------------------------------------------------------

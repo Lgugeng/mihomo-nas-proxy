@@ -2,7 +2,7 @@
 # Mihomo NAS Proxy - 常用命令
 # ============================================================
 
-.PHONY: help setup up down restart logs status update clean test backup restore
+.PHONY: help setup up down restart logs status update clean test backup restore monitor monitor-on monitor-off
 
 # 默认目标
 help: ## 显示帮助信息
@@ -69,3 +69,22 @@ restore: ## 恢复最近的备份
 		echo "  ✓ 已从 $$LATEST 恢复配置"; \
 		docker compose restart; \
 	fi
+
+monitor: ## 执行一次健康检查
+	@bash scripts/health-check.sh
+
+monitor-on: ## 启用定时健康监控（每小时检查一次）
+	@SCRIPT_PATH=$$(cd scripts && pwd)/health-check.sh; \
+	CRON_JOB="0 * * * * cd $$(pwd) && bash $$SCRIPT_PATH >> $$(pwd)/mihomo/monitor.log 2>&1"; \
+	cron_current=$$(crontab -l 2>/dev/null || true); \
+	if echo "$$cron_current" | grep -q "health-check.sh"; then \
+		echo "  ⚠️ 定时监控已启用"; \
+	else \
+		(echo "$$cron_current"; echo "$$CRON_JOB") | crontab -; \
+		echo "  ✓ 定时监控已启用（每小时检查一次）"; \
+		echo "  日志文件：mihomo/monitor.log"; \
+	fi
+
+monitor-off: ## 禁用定时健康监控
+	@crontab -l 2>/dev/null | grep -v "health-check.sh" | crontab - 2>/dev/null; \
+	echo "  ✓ 定时监控已禁用"
