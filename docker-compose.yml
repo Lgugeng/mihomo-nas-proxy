@@ -1,0 +1,24 @@
+services:
+  mihomo:
+    image: docker.io/metacubex/mihomo:Alpha
+    container_name: mihomo
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./mihomo:/root/.config/mihomo
+      - /dev/net/tun:/dev/net/tun
+      - /etc/localtime:/etc/localtime:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:9090/version || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

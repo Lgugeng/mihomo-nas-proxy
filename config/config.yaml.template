@@ -1,0 +1,218 @@
+# ============================================================
+# Mihomo 配置模板
+# 使用方法：复制此文件为 config.yaml 并填入你的订阅链接
+# ============================================================
+
+mixed-port: 7890
+socks-port: 7891
+
+allow-lan: true
+bind-address: "*"
+
+mode: rule
+log-level: info
+ipv6: false
+
+# API 监听地址，默认仅本机访问
+# 如需局域网其他设备访问 Web UI，改为 0.0.0.0:9090
+external-controller: 127.0.0.1:9090
+external-ui: ui
+
+# ⚠️ 请修改为强密码（部署后必须更改）
+secret: "CHANGE_ME_TO_STRONG_SECRET"
+
+# ------------------------------------------------------------
+# Profile 设置
+# ------------------------------------------------------------
+profile:
+  store-selected: true
+  store-fake-ip: true
+
+# ------------------------------------------------------------
+# DNS 配置（推荐开启）
+# ------------------------------------------------------------
+dns:
+  enable: true
+  listen: 127.0.0.1:1053
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  default-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  nameserver:
+    - https://223.5.5.5/dns-query
+    - https://doh.pub/dns-query
+    - https://dns.alidns.com/dns-query
+  fallback:
+    - https://1.1.1.1/dns-query
+    - https://dns.google/dns-query
+    - tls://8.8.8.8:853
+  fallback-filter:
+    geoip: true
+    geoip-code: CN
+    ipcidr:
+      - 240.0.0.0/4
+    domain:
+      - '+.google.com'
+      - '+.facebook.com'
+      - '+.youtube.com'
+      - '+.twitter.com'
+      - '+.github.com'
+
+# ------------------------------------------------------------
+# 订阅源（把 CLASH_SUBSCRIPTION_URL 替换为你的订阅链接）
+# ------------------------------------------------------------
+proxy-providers:
+  airport:
+    type: http
+    url: "CLASH_SUBSCRIPTION_URL"
+    interval: 3600
+    path: ./providers/airport.yaml
+    health-check:
+      enable: true
+      url: http://www.gstatic.com/generate_204
+      interval: 300
+
+# ------------------------------------------------------------
+# 代理分组
+# ------------------------------------------------------------
+proxy-groups:
+  # 主选择组
+  - name: PROXY
+    type: select
+    use:
+      - airport
+    proxies:
+      - AUTO
+      - AI服务
+      - 流媒体
+      - 电报
+      - DIRECT
+
+  # 自动测速组
+  - name: AUTO
+    type: url-test
+    use:
+      - airport
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+
+  # AI 服务组（ChatGPT/Claude 等）
+  - name: AI服务
+    type: select
+    use:
+      - airport
+    filter: "美国|日本|新加坡|韩国"
+
+  # 流媒体组（Netflix/YouTube 等）
+  - name: 流媒体
+    type: select
+    use:
+      - airport
+    filter: "香港|台湾|日本|新加坡|美国|韩国"
+
+  # 电报组
+  - name: 电报
+    type: select
+    use:
+      - airport
+    filter: "新加坡|日本|韩国|美国|德国|荷兰"
+
+# ------------------------------------------------------------
+# 规则
+# ------------------------------------------------------------
+rules:
+  # === 私有地址直连 ===
+  - IP-CIDR,127.0.0.0/8,DIRECT,no-resolve
+  - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
+  - IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
+  - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
+
+  # === AI 服务 ===
+  - DOMAIN-SUFFIX,openai.com,AI服务
+  - DOMAIN-SUFFIX,ai.com,AI服务
+  - DOMAIN-SUFFIX,anthropic.com,AI服务
+  - DOMAIN-SUFFIX,claude.ai,AI服务
+  - DOMAIN-SUFFIX,perplexity.ai,AI服务
+  - DOMAIN-SUFFIX,poe.com,AI服务
+  - DOMAIN-SUFFIX,midjourney.com,AI服务
+  - DOMAIN-SUFFIX,cursor.sh,AI服务
+  - DOMAIN-SUFFIX,copilot.microsoft.com,AI服务
+
+  # === Telegram ===
+  - DOMAIN-SUFFIX,telegram.org,电报
+  - DOMAIN-SUFFIX,telegram.me,电报
+  - DOMAIN-SUFFIX,telegra.ph,电报
+  - DOMAIN-SUFFIX,telesco.pe,电报
+  - IP-CIDR,91.108.0.0/16,电报,no-resolve
+  - IP-CIDR,149.154.0.0/16,电报,no-resolve
+
+  # === 流媒体 ===
+  - DOMAIN-SUFFIX,netflix.com,流媒体
+  - DOMAIN-SUFFIX,netflix.net,流媒体
+  - DOMAIN-SUFFIX,nflxvideo.net,流媒体
+  - DOMAIN-SUFFIX,youtube.com,流媒体
+  - DOMAIN-SUFFIX,youtu.be,流媒体
+  - DOMAIN-SUFFIX,googlevideo.com,流媒体
+  - DOMAIN-SUFFIX,ytimg.com,流媒体
+  - DOMAIN-SUFFIX,spotify.com,流媒体
+  - DOMAIN-SUFFIX,spotifycdn.com,流媒体
+  - DOMAIN-SUFFIX,twitch.tv,流媒体
+  - DOMAIN-SUFFIX,ttvnw.net,流媒体
+  - DOMAIN-SUFFIX,hulu.com,流媒体
+  - DOMAIN-SUFFIX,disneyplus.com,流媒体
+  - DOMAIN-SUFFIX,bilibili.com,DIRECT
+  - DOMAIN-SUFFIX,bilivideo.com,DIRECT
+
+  # === 开发者工具 ===
+  - DOMAIN-SUFFIX,github.com,PROXY
+  - DOMAIN-SUFFIX,github.io,PROXY
+  - DOMAIN-SUFFIX,githubusercontent.com,PROXY
+  - DOMAIN-SUFFIX,githubassets.com,PROXY
+  - DOMAIN-SUFFIX,stackoverflow.com,PROXY
+  - DOMAIN-SUFFIX,docker.com,PROXY
+  - DOMAIN-SUFFIX,docker.io,PROXY
+  - DOMAIN-SUFFIX,npmjs.com,PROXY
+  - DOMAIN-SUFFIX,pypi.org,PROXY
+
+  # === 游戏平台 ===
+  - DOMAIN-SUFFIX,steampowered.com,PROXY
+  - DOMAIN-SUFFIX,steamcommunity.com,PROXY
+  - DOMAIN-SUFFIX,steamstatic.com,PROXY
+  - DOMAIN-SUFFIX,playstation.com,PROXY
+  - DOMAIN-SUFFIX,sonyentertainmentnetwork.com,PROXY
+  - DOMAIN-SUFFIX,xbox.com,PROXY
+  - DOMAIN-SUFFIX,xboxlive.com,PROXY
+  - DOMAIN-SUFFIX,nintendo.com,PROXY
+
+  # === 常用海外服务 ===
+  - DOMAIN-SUFFIX,google.com,PROXY
+  - DOMAIN-SUFFIX,googleapis.com,PROXY
+  - DOMAIN-SUFFIX,gstatic.com,PROXY
+  - DOMAIN-SUFFIX,facebook.com,PROXY
+  - DOMAIN-SUFFIX,twitter.com,PROXY
+  - DOMAIN-SUFFIX,x.com,PROXY
+  - DOMAIN-SUFFIX,instagram.com,PROXY
+  - DOMAIN-SUFFIX,whatsapp.com,PROXY
+  - DOMAIN-SUFFIX,wikipedia.org,PROXY
+  - DOMAIN-SUFFIX,reddit.com,PROXY
+  - DOMAIN-SUFFIX,medium.com,PROXY
+
+  # === 国内直连 ===
+  - DOMAIN-SUFFIX,baidu.com,DIRECT
+  - DOMAIN-SUFFIX,qq.com,DIRECT
+  - DOMAIN-SUFFIX,taobao.com,DIRECT
+  - DOMAIN-SUFFIX,jd.com,DIRECT
+  - DOMAIN-SUFFIX,alipay.com,DIRECT
+  - DOMAIN-SUFFIX,weixin.qq.com,DIRECT
+  - DOMAIN-SUFFIX,163.com,DIRECT
+  - DOMAIN-SUFFIX,zhihu.com,DIRECT
+  - DOMAIN-SUFFIX,douyin.com,DIRECT
+  - DOMAIN-SUFFIX,bilibili.com,DIRECT
+
+  # === GeoIP 中国直连 ===
+  - GEOIP,CN,DIRECT
+
+  # === 兜底规则 ===
+  - MATCH,PROXY
